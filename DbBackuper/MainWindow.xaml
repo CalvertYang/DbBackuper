@@ -35,9 +35,9 @@
                     <Label x:Name="lbPassword" Margin="35 5 50 5" Content="Password" FontSize="14" FontWeight="Bold" />
                     <PasswordBox x:Name="pwd" Margin="35 5 50 5" Height="25"/>
                     <Grid Margin="35 5 20 5">
-                        <Image x:Name="imgStatus" HorizontalAlignment="Left" Height="30" Margin="150,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433"/>
-                        <Button x:Name="btnValidateConn" Content="Validate Connection" Margin="0,0,345,0" Height="30" Click="btnValidateConn_Click" ></Button>
-                        
+                        <Image x:Name="imgStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433"/>
+                        <Button x:Name="btnValidateConn" Content="Validate Connection" Margin="0,0,335,0" Height="30" Click="btnValidateConn_Click" ></Button>
+                        <CheckBox Content="Remember" Margin="180,0,0,0" Height="30"/>
                     </Grid>
                     <TextBlock x:Name="lbSummaryErrorMsg">
                         
