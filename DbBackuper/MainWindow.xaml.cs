@@ -54,6 +54,11 @@ namespace DbBackuper
             }
 
         }
+
+        private void wizard_Cancelled(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
         #endregion
        
 
@@ -152,6 +157,8 @@ namespace DbBackuper
 
         }
         #endregion
+
+        
 
     }
 }
