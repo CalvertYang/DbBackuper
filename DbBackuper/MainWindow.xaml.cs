@@ -27,11 +27,7 @@ namespace DbBackuper
     public partial class MainWindow : Window
     {
         #region Fields
-        /// <summary>
-        /// 本地端有掛載的所有資料庫。
-        /// </summary>
-        private BindingList<DatabaseItem> _dataDatabases = new BindingList<DatabaseItem>();
-        // private ObservableCollection<CheckedListItem> TopicList;
+        public ObservableCollection<CheckedListItem> Tables = new ObservableCollection<CheckedListItem>();
         #endregion
         
         public MainWindow()
@@ -39,21 +35,30 @@ namespace DbBackuper
             InitializeComponent();
         }
 
+        #region Events
+
         private void Grid_Loaded_1(object sender, RoutedEventArgs e)
         {
-            Initialze();
-        }
-
-        #region Private DRY Method
-
-        private void Initialze() {
             // Dropdownlist of databases
             cmbDatabases.ItemsSource = LoadLocalDatabases();
             cmbDatabases.SelectedIndex = 0;
 
+            lstTables.ItemsSource = Tables;
+        }
 
+        private void cmbDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbDatabases.SelectedIndex != 0)
+            {
+                LoadTables(cmbDatabases.SelectedItem.ToString());
+            }
 
         }
+        #endregion
+       
+
+        #region Private DRY Method
+        
         private List<string> LoadLocalDatabases()
         {
             List<string> databases = new List<string>();
@@ -75,10 +80,8 @@ namespace DbBackuper
 
             return databases;
         }
-        private List<string> LoadTables(string database)
+        private void LoadTables(string database)
         {
-            List<string> tables = new List<string>();
-            tables.Add("--- Please Select ---");
             string strdb = string.Format("Server=localhost;Database={0};Integrated Security=True;", database);
             using (SqlConnection conn = new System.Data.SqlClient.SqlConnection(strdb))
             {
@@ -89,50 +92,54 @@ namespace DbBackuper
                 cmd.CommandText = "sp_tables";
 
                 SqlDataReader dr = cmd.ExecuteReader();
+                Tables.Clear();
                 while (dr.Read())
                 {
-                    if(dr[3].ToString().ToLower() == "table")
-                    tables.Add(dr[2].ToString());
+                    if (dr[3].ToString().ToLower() == "table")
+                    {
+                        Tables.Add(new CheckedListItem { Name = dr[2].ToString(), IsChecked = false });
+                    }
                 }
             }
-
-            return tables;
         }
 
         #endregion
 
-        #region Events
-        private void cmbDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            DbContext db = new DbContext("Server=localhost;Integrated Security=True");
-            if(cmbDatabases.SelectedIndex != 0)
-            {
-                // cmbTables.ItemsSource = LoadTables(cmbDatabases.SelectedItem.ToString());
-            }
-            
-        }
-        #endregion
+        
 
         #region Models
-        
-        // For ComboboxItem of Database
-        public class DatabaseItem : INotifyPropertyChanged
-        {
-            private string _dbname;
 
-            public string DatabaseName
+        public class CheckedListItem : INotifyPropertyChanged
+        {
+            private int _id;
+            private string _name;
+            private bool _ischecked;
+
+
+            public int Id
             {
                 get
                 {
-                    return _dbname;
+                    return _id;
                 }
                 set
                 {
-                    _dbname = value;
-                    RaisePropertyChanged("DatabaseName");
+                    _id = value;
+                    RaisePropertyChanged("Id");
                 }
             }
-           
+
+            public string Name
+            {
+                get { return _name; }
+                set { _name = value; RaisePropertyChanged("Name"); }
+            }
+
+            public bool IsChecked
+            {
+                get { return _ischecked; }
+                set { _ischecked = value; RaisePropertyChanged("IsChecked"); }
+            }
             public event PropertyChangedEventHandler PropertyChanged;
 
             protected virtual void RaisePropertyChanged(String propertyName)
