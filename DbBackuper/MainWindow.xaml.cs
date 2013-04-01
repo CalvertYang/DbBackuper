@@ -44,6 +44,8 @@ namespace DbBackuper
             cmbDatabases.SelectedIndex = 0;
 
             lstTables.ItemsSource = Tables;
+
+            imgStatus.Visibility = System.Windows.Visibility.Hidden;
         }
 
         private void cmbDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -58,6 +60,41 @@ namespace DbBackuper
         private void wizard_Cancelled(object sender, RoutedEventArgs e)
         {
             this.Close();
+        }
+
+        private void btnValidateConn_Click(object sender, RoutedEventArgs e)
+        {
+            string connstring = string.Format("Server={0};User ID={1};Password={2}", txtRemote.Text.Trim(), txtAccount.Text.Trim(), pwd.Password.Trim());
+            BackgroundWorker bgw = new BackgroundWorker();
+            bgw.DoWork += bgwValidateConnection_DoWorkHandler;
+            bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
+            bgw.WorkerReportsProgress = true;
+            bgw.RunWorkerAsync(connstring);
+        }
+
+        public void bgwValidateConnection_DoWorkHandler(object sender, DoWorkEventArgs e)
+        {
+            e.Result = IsServerConnected(e.Argument.ToString());
+        }
+
+        private void bgwValidateConnection_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if ((bool)e.Result)
+            {
+                imgStatus.Source = new ImageSourceConverter().ConvertFromString("pack://application:,,,/AssemblyName;component/Images/tick.png") as ImageSource;
+                imgStatus.Visibility = System.Windows.Visibility.Visible;
+
+            }
+            else
+            {
+                BitmapImage bmImage = new BitmapImage();
+                bmImage.BeginInit();
+                bmImage.UriSource = new Uri("pack://application:,,,/AssemblyName;component/Images/error.png");
+                imgStatus.Source = bmImage;
+                imgStatus.Visibility = System.Windows.Visibility.Visible;
+            }
+
+
         }
         #endregion
        
@@ -107,7 +144,25 @@ namespace DbBackuper
                 }
             }
         }
-
+        private static bool IsServerConnected(string connectionString)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    return true;
+                }
+                catch (SqlException)
+                {
+                    return false;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+            }
+        }
         #endregion
 
         
@@ -157,6 +212,8 @@ namespace DbBackuper
 
         }
         #endregion
+
+       
 
         
 
