@@ -81,16 +81,15 @@ namespace DbBackuper
         {
             if ((bool)e.Result)
             {
-                imgStatus.Source = new ImageSourceConverter().ConvertFromString("pack://application:,,,/AssemblyName;component/Images/tick.png") as ImageSource;
+                string uri = String.Format(@"pack://application:,,,/DbBackuper;component/Images/tick.png");
+                imgStatus.Source = new BitmapImage(new Uri(uri));
                 imgStatus.Visibility = System.Windows.Visibility.Visible;
 
             }
             else
             {
-                BitmapImage bmImage = new BitmapImage();
-                bmImage.BeginInit();
-                bmImage.UriSource = new Uri("pack://application:,,,/AssemblyName;component/Images/error.png");
-                imgStatus.Source = bmImage;
+                string uri = String.Format(@"pack://application:,,,/DbBackuper;component/Images/error.png");
+                imgStatus.Source = new BitmapImage(new Uri(uri));
                 imgStatus.Visibility = System.Windows.Visibility.Visible;
             }
 
@@ -157,10 +156,7 @@ namespace DbBackuper
                 {
                     return false;
                 }
-                finally
-                {
-                    connection.Close();
-                }
+                
             }
         }
         #endregion
