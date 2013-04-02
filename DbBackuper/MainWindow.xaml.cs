@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AvalonWizard;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -46,6 +47,16 @@ namespace DbBackuper
             lstTables.ItemsSource = Tables;
 
             imgStatus.Visibility = System.Windows.Visibility.Hidden;
+            imgSourceStatus.Visibility = System.Windows.Visibility.Hidden;
+
+            if (cmbSourceSwitcher.SelectedValue == "local")
+            {
+                gbSource.Visibility = System.Windows.Visibility.Hidden;
+            }
+            else
+            {
+                gbSource.Visibility = System.Windows.Visibility.Visible;
+            }
         }
 
         private void cmbDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -56,15 +67,51 @@ namespace DbBackuper
             }
 
         }
+        private void cmbSourceSwitcher_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbSourceSwitcher.SelectedValue.ToString() == "local")
+            {
+                gbSource.Visibility = System.Windows.Visibility.Hidden;
+            }
+            else
+            {
+                gbSource.Visibility = System.Windows.Visibility.Visible;
+            }
+        }
 
         private void wizard_Cancelled(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
 
+        private void wizard_Commit(object sender, AvalonWizard.WizardPageConfirmEventArgs e)
+        {
+            switch (e.Page.Name)
+            { 
+                case "first":
+                    if (Tables.Select(x => x.IsChecked == true).Count() < 1)
+                    {
+                        MessageBox.Show("Tables has no select.");
+                        e.Cancel = true;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
         private void btnValidateConn_Click(object sender, RoutedEventArgs e)
         {
             string connstring = string.Format("Server={0};User ID={1};Password={2}", txtRemote.Text.Trim(), txtAccount.Text.Trim(), pwd.Password.Trim());
+            BackgroundWorker bgw = new BackgroundWorker();
+            bgw.DoWork += bgwValidateConnection_DoWorkHandler;
+            bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
+            bgw.WorkerReportsProgress = true;
+            bgw.RunWorkerAsync(connstring);
+        }
+
+        private void btnSourceValidateConn_Click(object sender, RoutedEventArgs e)
+        {
+            string connstring = string.Format("Server={0};User ID={1};Password={2}", txtSource.Text.Trim(), txtSourceAccount.Text.Trim(), pwd.Password.Trim());
             BackgroundWorker bgw = new BackgroundWorker();
             bgw.DoWork += bgwValidateConnection_DoWorkHandler;
             bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
@@ -208,6 +255,11 @@ namespace DbBackuper
 
         }
         #endregion
+
+        private void cmbSourceSwitcher_Selected_1(object sender, RoutedEventArgs e)
+        {
+
+        }
 
        
 

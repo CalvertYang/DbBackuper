@@ -6,9 +6,42 @@
     <Grid Loaded="Grid_Loaded_1">
 
 
-        <aw:Wizard x:Name="wizard" aw:Designer.PageIndex="1" Cancelled="wizard_Cancelled">
+        <aw:Wizard x:Name="wizard" aw:Designer.PageIndex="1" Cancelled="wizard_Cancelled" >
+            
             <!-- Page 1-->
-            <aw:WizardPage Header="Choose Tables for Backup">
+            <aw:WizardPage Name="first" Header="Source Informations" >
+                <StackPanel>
+                    
+                    <Label x:Name="lbSource" Margin="35 5 50 5" Content="IP/Remote/Local" FontSize="14" FontWeight="Bold" />
+                    <ComboBox x:Name="cmbSourceSwitcher"  SelectionChanged="cmbSourceSwitcher_SelectionChanged" >
+                        <ComboBoxItem Tag="local"  IsSelected="True">Local</ComboBoxItem>
+                        <ComboBoxItem Tag="remote">Remote</ComboBoxItem>
+                    </ComboBox>
+                    <GroupBox  Margin="35 5 50 5" FontSize="14" FontWeight="Bold" x:Name="gbSource">
+                        <GroupBox.Header>
+                           Remote Server Information for Connection
+                        </GroupBox.Header>
+                        <StackPanel  Margin="35 5 50 5">
+                        <TextBox x:Name="txtSource"  Height="25"></TextBox>
+                        <Label x:Name="lbSourceAccount"  Content="Account" FontSize="14" FontWeight="Bold" />
+                        <TextBox x:Name="txtSourceAccount"  Height="25"></TextBox>
+                        <Label x:Name="lbSourcePassword"  Content="Password" FontSize="14" FontWeight="Bold" />
+                        <PasswordBox x:Name="pwdSource"  Height="25"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <Grid Margin="35 5 20 5">
+                        <Image x:Name="imgSourceStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433"/>
+                        <Button x:Name="btnSourceValidateConn" Content="Validate Connection" Margin="0,0,335,0" Height="30" Click="btnSourceValidateConn_Click" ></Button>
+                        <CheckBox Content="Remember" x:Name="chkSourceRemember" Margin="180,0,0,0" Height="30"/>
+                    </Grid>
+                    <TextBlock x:Name="lbSourceSummaryErrorMsg">
+
+                    </TextBlock>
+                </StackPanel>
+            </aw:WizardPage>
+            <!-- Page 2-->
+            <aw:WizardPage Name="second" Header="Choose Tables for Backup" Commit="wizard_Commit">
                 <StackPanel>
                     <Label x:Name="lbDatabase" Margin="35 5 20 5" Content="Database" FontSize="14" FontWeight="Bold"/>
                     <ComboBox x:Name="cmbDatabases" 
@@ -25,7 +58,7 @@
                     </ListBox>
                 </StackPanel>
             </aw:WizardPage>
-            <!-- Page 2-->
+            <!-- Page 3-->
             <aw:WizardPage Header="Backup Informations" >
                 <StackPanel>
                     <Label x:Name="lbRemote" Margin="35 5 50 5" Content="IP/Remote" FontSize="14" FontWeight="Bold" />
@@ -44,7 +77,7 @@
                     </TextBlock>
                 </StackPanel>
             </aw:WizardPage>
-            <!-- Page 3-->
+            <!-- Page 4-->
             <aw:WizardPage Header="Progress" >
                 <StackPanel>
                     <ProgressBar />
