@@ -29,6 +29,7 @@ namespace DbBackuper
     {
         #region Fields
         public ObservableCollection<CheckedListItem> _tables = new ObservableCollection<CheckedListItem>();
+        public ObservableCollection<ModelItem> _target_states = new ObservableCollection<ModelItem>();
         #endregion
 
         #region Contructor & Destructor
@@ -38,6 +39,10 @@ namespace DbBackuper
         public MainWindow()
         {
             InitializeComponent();
+            _target_states.Add(new ModelItem { Value = "Hide", Text = "Local" });
+            _target_states.Add(new ModelItem { Value = "Show", Text = "Remote" });
+            
+            
         }
         /// <summary>
         /// 解構子
@@ -48,35 +53,93 @@ namespace DbBackuper
         #endregion
        
         #region Control Events
-        // 1: 初始化，載入資料
+
+        #region Description
+        /* Description
+         * N[sequence]: Normal Control 
+         * P: Wizard Page
+         * */
+        #endregion
+
+        // N1: 初始化，載入資料
         private void Grid_Loaded_1(object sender, RoutedEventArgs e)
         {
             // Dropdownlist of databases
-            cmbDatabases.ItemsSource = LoadLocalDatabases();
-            cmbDatabases.SelectedIndex = 0;
+            cmbSourceDatabases.ItemsSource = LoadLocalDatabases();
+            cmbSourceDatabases.SelectedIndex = 0;
 
-            lstTables.ItemsSource = _tables;
+            lstSourceTables.ItemsSource = _tables;
+
+            cmbTargetSwitcher.ItemsSource = _target_states;
+            cmbTargetSwitcher.SelectedIndex = 0;
+
+            _grid.DataContext = this;
+
+            
         }
-
-        private void cmbDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // P1: Validate "Source" connection 
+        private void SourceValidateConn_Click(object sender, RoutedEventArgs e)
         {
-            if (cmbDatabases.SelectedIndex != 0)
+            string connstring = "";
+            switch(cmbSourceSwitcher.SelectedItem.ToString())
             {
-                LoadTables(cmbDatabases.SelectedItem.ToString());
+                case "local":
+                    connstring = "Server=localhost;Integrated Security=True";
+                    break;
+                case "remote":
+                    string format = "Server={0};User ID={1};Password={2}";
+                    // TODO: Validate here.
+                    string server = txtSourceLocation.Text.Trim();
+                    string account = txtSourceAccount.Text.Trim();
+                    string pwd = pwdSource.Password;
+                    connstring = string.Format(format, server, account, pwd);
+                    break;
+            }
+            RunValidateConnection(connstring);
+        }
+        // P2-1: Combobox Select Event
+        private void SourceDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbSourceDatabases.SelectedIndex != 0)
+            {
+                LoadTables(cmbSourceDatabases.SelectedItem.ToString());
             }
 
         }
-        
+        // P3:  Validate "Target" connection 
+        private void TargetValidateConn_Click(object sender, RoutedEventArgs e)
+        {
+            string connstring = "";
+            switch (cmbSourceSwitcher.SelectedItem.ToString())
+            {
+                case "local":
+                    connstring = "Server=localhost;Integrated Security=True";
+                    break;
+                case "remote":
+                    string format = "Server={0};User ID={1};Password={2}";
+                    // TODO: Validate here.
+                    string server = txtSourceLocation.Text.Trim();
+                    string account = txtSourceAccount.Text.Trim();
+                    string pwd = pwdSource.Password;
+                    connstring = string.Format(format, server, account, pwd);
+                    break;
+            }
+            RunValidateConnection(connstring);
+        }
 
-        private void wizard_Cancelled(object sender, RoutedEventArgs e)
+        #region Wizard Events
+        // Close
+        private void Wizard_Cancelled(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
-
-        private void wizard_Commit(object sender, AvalonWizard.WizardPageConfirmEventArgs e)
+        // NEXT
+        private void Wizard_Commit(object sender, AvalonWizard.WizardPageConfirmEventArgs e)
         {
+            cmbTargetSwitcher.ApplyTemplate();
+            lbTargetAccount.ApplyTemplate();
             switch (e.Page.Name)
-            { 
+            {
                 case "first":
                     if (_tables.Select(x => x.IsChecked == true).Count() < 1)
                     {
@@ -88,56 +151,33 @@ namespace DbBackuper
                     break;
             }
         }
-        private void btnValidateConn_Click(object sender, RoutedEventArgs e)
-        {
-            string connstring = "";
-            if (cmbSwitcher.SelectedItem.ToString() == "local")
-            {
-                connstring = "Server=localhost;Integrated Security=True";
-            }
-            {
-                connstring = string.Format("Server={0};User ID={1};Password={2}", txtRemote.Text.Trim(), txtAccount.Text.Trim(), pwd.Password.Trim());
-            }
-            BackgroundWorker bgw = new BackgroundWorker();
-            bgw.DoWork += bgwValidateConnection_DoWorkHandler;
-            bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
-            bgw.WorkerReportsProgress = true;
-            bgw.RunWorkerAsync(connstring);
-        }
+        #endregion
 
-        private void btnSourceValidateConn_Click(object sender, RoutedEventArgs e)
-        {
-            string connstring = string.Format("Server={0};User ID={1};Password={2}", txtSource.Text.Trim(), txtSourceAccount.Text.Trim(), pwd.Password.Trim());
-            BackgroundWorker bgw = new BackgroundWorker();
-            bgw.DoWork += bgwValidateConnection_DoWorkHandler;
-            bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
-            bgw.WorkerReportsProgress = true;
-            bgw.RunWorkerAsync(connstring);
-        }
-
+        #region Threads
         public void bgwValidateConnection_DoWorkHandler(object sender, DoWorkEventArgs e)
         {
             e.Result = IsServerConnected(e.Argument.ToString());
         }
-
         private void bgwValidateConnection_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if ((bool)e.Result)
             {
                 string uri = String.Format(@"pack://application:,,,/DbBackuper;component/Images/tick.png");
-                imgStatus.Source = new BitmapImage(new Uri(uri));
-                imgStatus.Visibility = System.Windows.Visibility.Visible;
+                imgTargetStatus.Source = new BitmapImage(new Uri(uri));
+                imgTargetStatus.Visibility = System.Windows.Visibility.Visible;
 
             }
             else
             {
                 string uri = String.Format(@"pack://application:,,,/DbBackuper;component/Images/error.png");
-                imgStatus.Source = new BitmapImage(new Uri(uri));
-                imgStatus.Visibility = System.Windows.Visibility.Visible;
+                imgTargetStatus.Source = new BitmapImage(new Uri(uri));
+                imgTargetStatus.Visibility = System.Windows.Visibility.Visible;
             }
 
 
         }
+        #endregion
+       
         #endregion
        
 
@@ -202,9 +242,23 @@ namespace DbBackuper
                 
             }
         }
-        #endregion
+        private void RunValidateConnection(string connstring)
+        {
+            if (!String.IsNullOrEmpty(connstring))
+            {
+                BackgroundWorker bgw = new BackgroundWorker();
+                bgw.DoWork += bgwValidateConnection_DoWorkHandler;
+                bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
+                bgw.WorkerReportsProgress = true;
+                bgw.RunWorkerAsync(connstring);
+            }
+            else
+            {
+                MessageBox.Show("Connection String Error!");
+            }
+        }
 
-        
+        #endregion
 
         #region Models
 
@@ -213,8 +267,6 @@ namespace DbBackuper
             private int _id;
             private string _name;
             private bool _ischecked;
-
-
             public int Id
             {
                 get
@@ -227,20 +279,17 @@ namespace DbBackuper
                     RaisePropertyChanged("Id");
                 }
             }
-
             public string Name
             {
                 get { return _name; }
                 set { _name = value; RaisePropertyChanged("Name"); }
             }
-
             public bool IsChecked
             {
                 get { return _ischecked; }
                 set { _ischecked = value; RaisePropertyChanged("IsChecked"); }
             }
             public event PropertyChangedEventHandler PropertyChanged;
-
             protected virtual void RaisePropertyChanged(String propertyName)
             {
                 if ((PropertyChanged != null))
@@ -248,18 +297,37 @@ namespace DbBackuper
                     PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
                 }
             }
-
         }
-        #endregion
 
-        private void cmbSourceSwitcher_Selected_1(object sender, RoutedEventArgs e)
+        public class ModelItem : INotifyPropertyChanged
         {
+            private string _value;
+            private string _text;
 
+            public string Value
+            {
+                get { return _value; }
+                set { _value = value; RaisePropertyChanged("Value"); }
+            }
+
+            public string Text
+            {
+                get { return _text; }
+                set { _text = value; RaisePropertyChanged("Text"); }
+            }
+
+            public event PropertyChangedEventHandler PropertyChanged;
+            protected virtual void RaisePropertyChanged(String propertyName)
+            {
+                if ((PropertyChanged != null))
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
+            }
         }
-
-       
-
         
-
+        #endregion
     }
+
+    
 }
