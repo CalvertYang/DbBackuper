@@ -13,25 +13,83 @@
                 <StackPanel>
                     
                     <Label x:Name="lbSource" Margin="35 5 50 5" Content="IP/Remote/Local" FontSize="14" FontWeight="Bold" />
-                    <ComboBox x:Name="cmbSourceSwitcher"  SelectionChanged="cmbSourceSwitcher_SelectionChanged" >
-                        <ComboBoxItem Tag="local"  IsSelected="True">Local</ComboBoxItem>
-                        <ComboBoxItem Tag="remote">Remote</ComboBoxItem>
+                    <ComboBox Name="cmbSourceSwitcher" Margin="35 5 50 5">
+                        <ComboBoxItem Tag="Hide" IsSelected="True">Local</ComboBoxItem>
+                        <ComboBoxItem Tag="Show">Remote</ComboBoxItem>
                     </ComboBox>
-                    <GroupBox  Margin="35 5 50 5" FontSize="14" FontWeight="Bold" x:Name="gbSource">
-                        <GroupBox.Header>
-                           Remote Server Information for Connection
-                        </GroupBox.Header>
-                        <StackPanel  Margin="35 5 50 5">
-                        <TextBox x:Name="txtSource"  Height="25"></TextBox>
-                        <Label x:Name="lbSourceAccount"  Content="Account" FontSize="14" FontWeight="Bold" />
-                        <TextBox x:Name="txtSourceAccount"  Height="25"></TextBox>
-                        <Label x:Name="lbSourcePassword"  Content="Password" FontSize="14" FontWeight="Bold" />
-                        <PasswordBox x:Name="pwdSource"  Height="25"/>
-                        </StackPanel>
-                    </GroupBox>
+
+                    <TextBox Name="txtSourceLocation" Height="25" Margin="35 5 50 5">
+                        <TextBox.Style>
+                            <Style>
+                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger  
+                                        Binding="{Binding ElementName=cmbSourceSwitcher, Path=SelectedItem.Tag}" Value="Show">
+                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <Label Name="lbSourceAccount" Content="Account" FontSize="14" FontWeight="Bold" Margin="35 5 50 5">
+                        <Label.Style>
+                            <Style>
+                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger  
+                                        Binding="{Binding ElementName=cmbSourceSwitcher, Path=SelectedItem.Tag}" Value="Show">
+                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Style>
+                    </Label>
+
+                    <TextBox Name="txtSourceAccount" Height="25" Margin="35 5 50 5">
+                        <TextBox.Style>
+                            <Style>
+                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger  
+                                        Binding="{Binding ElementName=cmbSourceSwitcher, Path=SelectedItem.Tag}" Value="Show">
+                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <Label Name="lbSourcePassword"  Content="Password" FontSize="14" FontWeight="Bold" Margin="35 5 50 5">
+                        <Label.Style>
+                            <Style>
+                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger  
+                                        Binding="{Binding ElementName=cmbSourceSwitcher, Path=SelectedItem.Tag}" Value="Show">
+                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Style>
+                    </Label>
+
+                    <PasswordBox x:Name="pwdSource"  Height="25" Margin="35 5 50 5">
+                        <PasswordBox.Style>
+                            <Style>
+                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger  
+                                        Binding="{Binding ElementName=cmbSourceSwitcher, Path=SelectedItem.Tag}" Value="Show">
+                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </PasswordBox.Style>
+                    </PasswordBox>
+
 
                     <Grid Margin="35 5 20 5">
-                        <Image x:Name="imgSourceStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433"/>
+                        <Image x:Name="imgSourceStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433" Visibility="Hidden"/>
                         <Button x:Name="btnSourceValidateConn" Content="Validate Connection" Margin="0,0,335,0" Height="30" Click="btnSourceValidateConn_Click" ></Button>
                         <CheckBox Content="Remember" x:Name="chkSourceRemember" Margin="180,0,0,0" Height="30"/>
                     </Grid>
@@ -68,7 +126,7 @@
                     <Label x:Name="lbPassword" Margin="35 5 50 5" Content="Password" FontSize="14" FontWeight="Bold" />
                     <PasswordBox x:Name="pwd" Margin="35 5 50 5" Height="25"/>
                     <Grid Margin="35 5 20 5">
-                        <Image x:Name="imgStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433"/>
+                        <Image x:Name="imgStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433" Visibility="Hidden"/>
                         <Button x:Name="btnValidateConn" Content="Validate Connection" Margin="0,0,335,0" Height="30" Click="btnValidateConn_Click" ></Button>
                         <CheckBox Content="Remember" Margin="180,0,0,0" Height="30"/>
                     </Grid>

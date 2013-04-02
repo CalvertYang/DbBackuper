@@ -28,35 +28,34 @@ namespace DbBackuper
     public partial class MainWindow : Window
     {
         #region Fields
-        public ObservableCollection<CheckedListItem> Tables = new ObservableCollection<CheckedListItem>();
+        public ObservableCollection<CheckedListItem> _tables = new ObservableCollection<CheckedListItem>();
         #endregion
-        
+
+        #region Contructor & Destructor
+        /// <summary>
+        /// 建構子
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
         }
-
-        #region Events
-
+        /// <summary>
+        /// 解構子
+        /// </summary>
+        ~MainWindow() 
+        {
+        }
+        #endregion
+       
+        #region Control Events
+        // 1: 初始化，載入資料
         private void Grid_Loaded_1(object sender, RoutedEventArgs e)
         {
             // Dropdownlist of databases
             cmbDatabases.ItemsSource = LoadLocalDatabases();
             cmbDatabases.SelectedIndex = 0;
 
-            lstTables.ItemsSource = Tables;
-
-            imgStatus.Visibility = System.Windows.Visibility.Hidden;
-            imgSourceStatus.Visibility = System.Windows.Visibility.Hidden;
-
-            if (cmbSourceSwitcher.SelectedValue == "local")
-            {
-                gbSource.Visibility = System.Windows.Visibility.Hidden;
-            }
-            else
-            {
-                gbSource.Visibility = System.Windows.Visibility.Visible;
-            }
+            lstTables.ItemsSource = _tables;
         }
 
         private void cmbDatabases_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -67,17 +66,7 @@ namespace DbBackuper
             }
 
         }
-        private void cmbSourceSwitcher_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (cmbSourceSwitcher.SelectedValue.ToString() == "local")
-            {
-                gbSource.Visibility = System.Windows.Visibility.Hidden;
-            }
-            else
-            {
-                gbSource.Visibility = System.Windows.Visibility.Visible;
-            }
-        }
+        
 
         private void wizard_Cancelled(object sender, RoutedEventArgs e)
         {
@@ -89,7 +78,7 @@ namespace DbBackuper
             switch (e.Page.Name)
             { 
                 case "first":
-                    if (Tables.Select(x => x.IsChecked == true).Count() < 1)
+                    if (_tables.Select(x => x.IsChecked == true).Count() < 1)
                     {
                         MessageBox.Show("Tables has no select.");
                         e.Cancel = true;
@@ -101,7 +90,14 @@ namespace DbBackuper
         }
         private void btnValidateConn_Click(object sender, RoutedEventArgs e)
         {
-            string connstring = string.Format("Server={0};User ID={1};Password={2}", txtRemote.Text.Trim(), txtAccount.Text.Trim(), pwd.Password.Trim());
+            string connstring = "";
+            if (cmbSwitcher.SelectedItem.ToString() == "local")
+            {
+                connstring = "Server=localhost;Integrated Security=True";
+            }
+            {
+                connstring = string.Format("Server={0};User ID={1};Password={2}", txtRemote.Text.Trim(), txtAccount.Text.Trim(), pwd.Password.Trim());
+            }
             BackgroundWorker bgw = new BackgroundWorker();
             bgw.DoWork += bgwValidateConnection_DoWorkHandler;
             bgw.RunWorkerCompleted += bgwValidateConnection_RunWorkerCompleted;
@@ -180,12 +176,12 @@ namespace DbBackuper
                 cmd.CommandText = "sp_tables";
 
                 SqlDataReader dr = cmd.ExecuteReader();
-                Tables.Clear();
+                _tables.Clear();
                 while (dr.Read())
                 {
                     if (dr[3].ToString().ToLower() == "table")
                     {
-                        Tables.Add(new CheckedListItem { Name = dr[2].ToString(), IsChecked = false });
+                        _tables.Add(new CheckedListItem { Name = dr[2].ToString(), IsChecked = false });
                     }
                 }
             }
