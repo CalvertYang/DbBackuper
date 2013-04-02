@@ -29,7 +29,6 @@ namespace DbBackuper
     {
         #region Fields
         public ObservableCollection<CheckedListItem> _tables = new ObservableCollection<CheckedListItem>();
-        public ObservableCollection<ModelItem> _target_states = new ObservableCollection<ModelItem>();
         #endregion
 
         #region Contructor & Destructor
@@ -39,10 +38,7 @@ namespace DbBackuper
         public MainWindow()
         {
             InitializeComponent();
-            _target_states.Add(new ModelItem { Value = "Hide", Text = "Local" });
-            _target_states.Add(new ModelItem { Value = "Show", Text = "Remote" });
-            
-            
+         
         }
         /// <summary>
         /// 解構子
@@ -70,10 +66,6 @@ namespace DbBackuper
 
             lstSourceTables.ItemsSource = _tables;
 
-            cmbTargetSwitcher.ItemsSource = _target_states;
-            cmbTargetSwitcher.SelectedIndex = 0;
-
-            _grid.DataContext = this;
 
             
         }
@@ -105,6 +97,31 @@ namespace DbBackuper
                 LoadTables(cmbSourceDatabases.SelectedItem.ToString());
             }
 
+        }
+        // P3: Show/Hide control for set login information
+        private void TargetSwitch_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (txtTargetAccount != null)
+            {
+                if ((cmbTargetSwitcher.SelectedItem as ComboBoxItem).Tag.ToString() == "Hide")
+                {
+                    txtTargetAccount.Visibility = System.Windows.Visibility.Collapsed;
+                    txtTargetLocation.Visibility = System.Windows.Visibility.Collapsed;
+                    lbTargetAccount.Visibility = System.Windows.Visibility.Collapsed;
+                    lbTargetPassword.Visibility = System.Windows.Visibility.Collapsed;
+                    lbTargetSummaryErrorMsg.Visibility = System.Windows.Visibility.Collapsed;
+                    pwdTarget.Visibility = System.Windows.Visibility.Collapsed;
+                }
+                else
+                {
+                    txtTargetAccount.Visibility = System.Windows.Visibility.Visible;
+                    txtTargetLocation.Visibility = System.Windows.Visibility.Visible;
+                    lbTargetAccount.Visibility = System.Windows.Visibility.Visible;
+                    lbTargetPassword.Visibility = System.Windows.Visibility.Visible;
+                    lbTargetSummaryErrorMsg.Visibility = System.Windows.Visibility.Visible;
+                    pwdTarget.Visibility = System.Windows.Visibility.Visible;
+                }
+            }
         }
         // P3:  Validate "Target" connection 
         private void TargetValidateConn_Click(object sender, RoutedEventArgs e)
@@ -299,35 +316,8 @@ namespace DbBackuper
             }
         }
 
-        public class ModelItem : INotifyPropertyChanged
-        {
-            private string _value;
-            private string _text;
-
-            public string Value
-            {
-                get { return _value; }
-                set { _value = value; RaisePropertyChanged("Value"); }
-            }
-
-            public string Text
-            {
-                get { return _text; }
-                set { _text = value; RaisePropertyChanged("Text"); }
-            }
-
-            public event PropertyChangedEventHandler PropertyChanged;
-            protected virtual void RaisePropertyChanged(String propertyName)
-            {
-                if ((PropertyChanged != null))
-                {
-                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-                }
-            }
-        }
-        
         #endregion
     }
-
+    
     
 }
