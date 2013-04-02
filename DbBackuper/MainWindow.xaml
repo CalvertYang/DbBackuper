@@ -3,10 +3,10 @@
         xmlns:aw="clr-namespace:AvalonWizard;assembly=AvalonWizard"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Database Backuper" Height="593" Width="544">
+    
         <Grid Loaded="Grid_Loaded_1" x:Name="_grid">
         
         <aw:Wizard x:Name="wizard" aw:Designer.PageIndex="1" Cancelled="Wizard_Cancelled" >
-            
             <!-- Page 1-->
             <aw:WizardPage Name="first" Header="Source Informations" >
                 <StackPanel>
@@ -120,80 +120,15 @@
             <aw:WizardPage Header="Backup Informations" >
                 <StackPanel>
                     <Label x:Name="lbTargetLocation" Margin="35 5 50 5" Content="IP/Remote/Local" FontSize="14" FontWeight="Bold" />
-                    <ComboBox x:Name="cmbTargetSwitcher" Margin="35 5 50 5"
-                              DisplayMemberPath="Text" 
-                              SelectedValuePath="Value" 
-                              />
-                    <TextBox x:Name="txtTargetLocation" Margin="35 5 50 5" Height="25">
-                        <TextBox.Style>
-                            <Style>
-                                <Setter Property="TextBox.Visibility" Value="Collapsed"></Setter>
-                                <Style.Triggers>
-                                    <DataTrigger  
-                                        Binding="{Binding Path=DataContext, RelativeSource={RelativeSource Self}}"
-                                        Value="Show">
-                                        <Setter Property="TextBox.Visibility" Value="Visible"></Setter>
-                                    </DataTrigger>
-                                    
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                    <Label x:Name="lbTargetAccount" Margin="35 5 50 5" Content="Account" FontSize="14" FontWeight="Bold">
-                        <Label.Style>
-                            <Style>
-                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
-                                <Style.Resources>
-                                    
-                                </Style.Resources>
-                                <Style.Triggers>
-                                    <DataTrigger  
-                                        Binding="{Binding ElementName=cmbTargetSwitcher, Path=SelectedItem.Tag}" Value="Show">
-                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Label.Style>
-                    </Label>
-                    <TextBox x:Name="txtTargetAccount"  Margin="35 5 50 5" Height="25">
-                        <TextBox.Style>
-                            <Style>
-                                <Setter Property="TextBox.Visibility" Value="Collapsed"></Setter>
-                                <Style.Triggers>
-                                    <DataTrigger  
-                                        Binding="{Binding ElementName=cmbTargetSwitcher, Path=SelectedItem.Tag}" Value="Show">
-                                        <Setter Property="TextBox.Visibility" Value="Visible"></Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                    <Label x:Name="lbTargetPassword" Margin="35 5 50 5" Content="Password" FontSize="14" FontWeight="Bold">
-                        <Label.Style>
-                            <Style>
-                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
-                                <Style.Triggers>
-                                    <DataTrigger  
-                                        Binding="{Binding ElementName=cmbTargetSwitcher, Path=SelectedItem.Tag}" Value="Show">
-                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Label.Style>
-                    </Label>
-                    <PasswordBox x:Name="pwdTarget" Margin="35 5 50 5" Height="25">
-                        <PasswordBox.Style>
-                            <Style>
-                                <Setter Property="Label.Visibility" Value="Collapsed"></Setter>
-                                <Style.Triggers>
-                                    <DataTrigger  
-                                        Binding="{Binding ElementName=cmbTargetSwitcher, Path=SelectedItem.Tag}" Value="Show">
-                                        <Setter Property="Label.Visibility" Value="Visible"></Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </PasswordBox.Style>
-                    </PasswordBox>
+                    <ComboBox Name="cmbTargetSwitcher" Margin="35 5 50 5" SelectionChanged="TargetSwitch_SelectionChanged" >
+                        <ComboBoxItem Tag="Hide" IsSelected="True">Local</ComboBoxItem>
+                        <ComboBoxItem Tag="Show">Remote</ComboBoxItem>
+                    </ComboBox>
+                    <TextBox x:Name="txtTargetLocation" Margin="35 5 50 5" Height="25"  Visibility="Collapsed"/>
+                    <Label x:Name="lbTargetAccount" Margin="35 5 50 5" Content="Account" FontSize="14" FontWeight="Bold" Visibility="Collapsed"/>
+                    <TextBox x:Name="txtTargetAccount"  Margin="35 5 50 5" Height="25" Visibility="Collapsed"/>
+                    <Label x:Name="lbTargetPassword" Margin="35 5 50 5" Content="Password" FontSize="14" FontWeight="Bold" Visibility="Collapsed"/>
+                    <PasswordBox x:Name="pwdTarget" Margin="35 5 50 5" Height="25" Visibility="Collapsed"/>
                     <Grid Margin="35 5 20 5">
                         <Image x:Name="imgTargetStatus" HorizontalAlignment="Left" Height="30" Margin="145,0,0,0" VerticalAlignment="Top" Width="35" Source="Images/error.png" RenderTransformOrigin="-0.257,0.433" Visibility="Hidden"/>
                         <Button x:Name="btnTargetValidateConn" Content="Validate Connection" Margin="0,0,335,0" Height="30" Click="TargetValidateConn_Click" ></Button>
