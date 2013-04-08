@@ -22,6 +22,7 @@ using System.Windows.Shapes;
 using Smo=Microsoft.SqlServer.Management.Smo;
 using Microsoft.SqlServer.Management.Smo.SqlEnum;
 using System.Collections.Specialized;
+using System.Text.RegularExpressions;
 
 namespace DbBackuper
 {
@@ -274,13 +275,19 @@ namespace DbBackuper
 
                     if (source_pass)
                     {
-                        DealSourceConnectionString();
-                        RunValidateConnection(this._source_connstring, "source");
+                        if (DealSourceConnectionString())
+                        {
+                            RunValidateConnection(this._source_connstring, "source");
+                            cmbSourceDatabases.ItemsSource = LoadDatabases(this._source_connstring);
+                            cmbSourceDatabases.SelectedIndex = 0;
 
-                        cmbSourceDatabases.ItemsSource = LoadDatabases(this._source_connstring);
-                        cmbSourceDatabases.SelectedIndex = 0;
-
-                        lstSourceTables.ItemsSource = _tables;
+                            lstSourceTables.ItemsSource = _tables;
+                        }
+                        else
+                        {
+                            MessageBox.Show("Information Error!!!");
+                            e.Cancel = true;
+                        }
                     }
                     else
                     {
@@ -307,9 +314,16 @@ namespace DbBackuper
                     bool target_pass = target_local_condition || target_remote_condition;
                     if (target_pass)
                     {
-                        DealTargetConnectionString();
-                        RunValidateConnection(this._target_connstring, "source");
-                        txtBackupDatabaseName.Text = cmbSourceDatabases.SelectedItem.ToString();
+                        if (DealTargetConnectionString())
+                        {
+                            RunValidateConnection(this._target_connstring, "source");
+                            txtBackupDatabaseName.Text = cmbSourceDatabases.SelectedItem.ToString();
+                        }
+                        else
+                        {
+                            MessageBox.Show("Information Error!!!");
+                            e.Cancel = true;
+                        }
                     }
                     else
                     {
@@ -527,39 +541,73 @@ namespace DbBackuper
                 MessageBox.Show("Connection Information can't be empty");
             }
         }
-        private void DealSourceConnectionString()
+        private bool DealSourceConnectionString()
         {
+            Regex regexIp = new Regex(@"([2]([5][0-5]|[0-4][0-9])|[0-1]?[0-9]{1,2})(\.([2]([5][0-5]|[0-4][0-9])|[0-1]?[0-9]{1,2})){3}");
+            Regex regexUrl = new Regex(@"([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}");
+            bool result = false;
             switch ((cmbSourceSwitcher.SelectedItem as ComboBoxItem).Content.ToString())
             {
                 case "Local":
                     this._source_connstring = LOCAL_CONNSTRING_NO_DATABASE;
+                    result = true;
                     break;
                 case "Remote":
                     string format = REMOTE_FORMAT_NO_DATABASE;
-                    // TODO: Validate here.
+                    // Validate here.
                     string server = txtSourceLocation.Text.Trim();
-                    string account = txtSourceAccount.Text.Trim();
-                    string pwd = pwdSource.Password;
-                    this._source_connstring = string.Format(format, server, account, pwd);
+                    if (regexIp.IsMatch(server) || regexUrl.IsMatch(server))
+                    {
+                        string account = txtSourceAccount.Text.Trim();
+                        string pwd = pwdSource.Password;
+                        this._source_connstring = string.Format(format, server, account, pwd);
+                        result = true;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Server information error.");
+                        txtSourceLocation.Text = "";
+                        pwdSource.Password = "";
+                        result = false;
+                        break;
+                    }
                     break;
             }
+            return result;
         }
-        private void DealTargetConnectionString()
+        private bool DealTargetConnectionString()
         {
+            Regex regexIp = new Regex(@"([2]([5][0-5]|[0-4][0-9])|[0-1]?[0-9]{1,2})(\.([2]([5][0-5]|[0-4][0-9])|[0-1]?[0-9]{1,2})){3}");
+            Regex regexUrl = new Regex(@"([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}");
+            bool result = false;
             switch ((cmbTargetSwitcher.SelectedItem as ComboBoxItem).Content.ToString())
             {
                 case "Local":
                     this._target_connstring = LOCAL_CONNSTRING_NO_DATABASE;
+                    result = true;
                     break;
                 case "Remote":
                     string format = REMOTE_FORMAT_NO_DATABASE;
-                    // TODO: Validate here.
+                    // Validate here.
+                   
                     string server = txtTargetLocation.Text.Trim();
-                    string account = txtTargetAccount.Text.Trim();
-                    string pwd = pwdTarget.Password;
-                    this._target_connstring = string.Format(format, server, account, pwd);
+                    if (regexIp.IsMatch(server) || regexUrl.IsMatch(server))
+                    {
+                        string account = txtTargetAccount.Text.Trim();
+                        string pwd = pwdTarget.Password;
+                        this._target_connstring = string.Format(format, server, account, pwd);
+                        result = true;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Server information error.");
+                        txtTargetLocation.Text = "";
+                        pwdTarget.Password = "";
+                        result = false;
+                    }
                     break;
             }
+            return result;
         }
         private void RunBackup()
         { 
