@@ -16,4 +16,3 @@ C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\EntityFramework.xml
 C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.dll
 C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.pdb
 C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.xml
-C:\Projects\Practices\DbBackuper\DbBackuper\obj\Debug\GeneratedInternalTypeHelper.g.cs
