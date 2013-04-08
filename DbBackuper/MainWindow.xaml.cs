@@ -640,7 +640,6 @@ namespace DbBackuper
                 options.DriAll = true;
                 options.Indexes = true;
                 options.IncludeHeaders = true;
-
                 StringCollection coll = tbl.Script(options);
                 foreach (string str in coll)
                 {
