@@ -688,27 +688,30 @@ namespace DbBackuper
                 d_conn = new ServerConnection(d_server, d_username, d_pwd);
             }
             Smo.Server destination_srv = new Smo.Server(d_conn);
+            // When database not exists backup all
             if (!destination_srv.Databases.Contains(d_db))
             {
                 Smo.Database newdb = new Smo.Database(destination_srv, d_db);
                 newdb.Create();
-            }
-            // transfer.CreateTargetDatabase = true;
-            transfer.DestinationLoginSecure = false;
-            transfer.DestinationServer = d_server;
-            if (!string.IsNullOrEmpty(d_username) && !string.IsNullOrEmpty(d_pwd))
-            {
-                transfer.DestinationLogin = d_username;
-                transfer.DestinationPassword = d_pwd;
-            }
-            else
-            {
-                transfer.DestinationLoginSecure = true;
-            }
-            transfer.DestinationDatabase = d_db;
 
-            transfer.ScriptTransfer();
-            transfer.TransferData();
+                // transfer.CreateTargetDatabase = true;
+                transfer.DestinationLoginSecure = false;
+                transfer.DestinationServer = d_server;
+                if (!string.IsNullOrEmpty(d_username) && !string.IsNullOrEmpty(d_pwd))
+                {
+                    transfer.DestinationLogin = d_username;
+                    transfer.DestinationPassword = d_pwd;
+                }
+                else
+                {
+                    transfer.DestinationLoginSecure = true;
+                }
+                transfer.DestinationDatabase = d_db;
+
+                transfer.ScriptTransfer();
+                transfer.TransferData();
+            }
+            
 
             
             //Smo.Server srv = new Smo.Server();
