@@ -21,6 +21,8 @@ using System.Windows.Shapes;
 // Source: http://msdn.microsoft.com/en-us/library/ms162129%28v=sql.105%29
 using Smo=Microsoft.SqlServer.Management.Smo;
 using Microsoft.SqlServer.Management.Smo.SqlEnum;
+using Microsoft.SqlServer.Management.Common;
+using Microsoft.SqlServer.Management.Sdk.Sfc;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
 
@@ -35,6 +37,7 @@ namespace DbBackuper
         #region Fields
         
         private const string LOCAL_CONNSTRING_NO_DATABASE = "Server=localhost;Integrated Security=True;";
+        private const string LOCALDBV11_CONNSTRING_NO_DATABASE = @"Server=(LocalDb)\v11.0;Integrated Security=True;";
         private const string LOCAL_FORMAT_WITH_DATABASE = "Server=localhost;Integrated Security=True;Database={0};";
         private const string REMOTE_FORMAT_NO_DATABASE = "Server={0};User ID={1};Password={2};";
         private const string REMOTE_FORMAT_WITH_DATABASE = "Server={0};User ID={1};Password={2};Database={3};";
@@ -271,7 +274,13 @@ namespace DbBackuper
                     bool source_remote_condition = ((cmbSourceSwitcher.SelectedItem as ComboBoxItem).Content.ToString() == "Remote") 
                         && (!String.IsNullOrEmpty(txtSourceAccount.Text) && !String.IsNullOrEmpty(txtSourceLocation.Text.Trim()) 
                         && !String.IsNullOrEmpty(pwdSource.Password.ToString().Trim()));
+
                     bool source_pass = source_local_condition || source_remote_condition;
+                    // add localdb to use.
+                    if (txtSourceLocation.Text.Trim().ToLower() == @"(localdb)\v11.0")
+                    {
+                        source_pass = true;
+                    }
 
                     if (source_pass)
                     {
@@ -312,6 +321,12 @@ namespace DbBackuper
                                 && (!String.IsNullOrEmpty(txtTargetAccount.Text) && !String.IsNullOrEmpty(txtTargetLocation.Text.Trim())
                                 && !String.IsNullOrEmpty(pwdTarget.Password.ToString().Trim()));
                     bool target_pass = target_local_condition || target_remote_condition;
+                    // add localdb to use.
+                    if (txtTargetLocation.Text.Trim().ToLower() == @"(localdb)\v11.0")
+                    {
+                        target_pass = true;
+                    }
+
                     if (target_pass)
                     {
                         if (DealTargetConnectionString())
@@ -556,11 +571,16 @@ namespace DbBackuper
                     string format = REMOTE_FORMAT_NO_DATABASE;
                     // Validate here.
                     string server = txtSourceLocation.Text.Trim();
-                    if (regexIp.IsMatch(server) || regexUrl.IsMatch(server))
+                    if (regexIp.IsMatch(server) || regexUrl.IsMatch(server) )
                     {
                         string account = txtSourceAccount.Text.Trim();
                         string pwd = pwdSource.Password;
                         this._source_connstring = string.Format(format, server, account, pwd);
+                        result = true;
+                    }
+                    else if (server.ToLower() == @"(localdb)\v11.0")
+                    {
+                        this._source_connstring = LOCALDBV11_CONNSTRING_NO_DATABASE;
                         result = true;
                     }
                     else
@@ -598,6 +618,11 @@ namespace DbBackuper
                         this._target_connstring = string.Format(format, server, account, pwd);
                         result = true;
                     }
+                    else if (server.ToLower() == @"(localdb)\v11.0")
+                    {
+                        this._target_connstring = LOCALDBV11_CONNSTRING_NO_DATABASE;
+                        result = true;
+                    }
                     else
                     {
                         MessageBox.Show("Server information error.");
@@ -611,45 +636,106 @@ namespace DbBackuper
         }
         private void RunBackup()
         { 
-            //Step1.  Get All Table Sechma
-            //Smo.Server server = new Smo.Server(@"(localdb)\v11.0");
-            //Smo.Database database = new Smo.Database();
-            //database = server.Databases["TEST"];
-            //Smo.Table table = database.Tables["Categories", @"PPP"];
-            if (!String.IsNullOrEmpty(this._source_connstring))
-            { 
-                //
-            }
-            Smo.Server srv = new Smo.Server();
-            // really you would get these from config or elsewhere:
-            //srv.ConnectionContext.Login = "foo";
-            //srv.ConnectionContext.Password = "bar";
-            srv.ConnectionContext.ServerInstance = @"(localdb)\v11.0";
-            string dbName = "TEST";
+            // Flow 1 Destination Dataabase not exists.
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(_source_connstring);
+             /* SOURCE Database */
+            string s_server = builder["Server"].ToString();
+            string s_username = builder["User ID"].ToString();
+            string s_pwd = builder["Password"].ToString();
+            string s_db = cmbSourceDatabases.SelectedItem.ToString();
 
-            Smo.Database db = new Smo.Database();
-            db = srv.Databases[dbName];
-
-            StringBuilder sb = new StringBuilder();
-
-            foreach (Smo.Table tbl in db.Tables)
+            /* DESTINATION Database */
+            builder = new SqlConnectionStringBuilder(_target_connstring);
+            string d_server = builder["Server"].ToString();
+            string d_username = builder["User ID"].ToString();
+            string d_pwd = builder["Password"].ToString();
+            string d_db = txtBackupDatabaseName.Text.Trim();
+            ServerConnection conn;
+            if (string.IsNullOrEmpty(s_username))
             {
-                Smo.ScriptingOptions options = new Smo.ScriptingOptions();
-                options.ClusteredIndexes = true;
-                options.Default = true;
-                options.DriAll = true;
-                options.Indexes = true;
-                options.IncludeHeaders = true;
-                StringCollection coll = tbl.Script(options);
-                foreach (string str in coll)
-                {
-                    sb.Append(str);
-                    sb.Append(Environment.NewLine);
-                }
+                conn = new ServerConnection(s_server);
             }
-            System.IO.StreamWriter fs = System.IO.File.CreateText("c:\\temp\\output.txt");
-            fs.Write(sb.ToString());
-            fs.Close();
+            else
+            {
+                conn = new ServerConnection(s_server, s_username, s_pwd);
+            }
+            Smo.Server source_srv = new Smo.Server(conn);
+            Smo.Database source_db = source_srv.Databases[s_db];
+
+            Smo.Transfer transfer = new Smo.Transfer(source_db);
+            transfer.CopyAllUsers = true;
+            transfer.CreateTargetDatabase = false;
+            transfer.CopyAllObjects = false;
+            transfer.CopyAllTables = false;
+            transfer.CopyData = true;
+            // transfer.CopySchema = true;
+            transfer.Options.WithDependencies = true;
+            transfer.Options.DriAll = true;
+            transfer.Options.ContinueScriptingOnError = false;
+            foreach (var tbl in _tables.Where(x => x.IsChecked == true))
+            {
+                transfer.ObjectList.Add(source_db.Tables[tbl.Name]);
+            }
+
+            //use following code if want to create destination databaes runtime
+            ServerConnection d_conn;
+            if (string.IsNullOrEmpty(d_username))
+            {
+                d_conn = new ServerConnection(d_server);
+            }
+            else
+            {
+                d_conn = new ServerConnection(d_server, d_username, d_pwd);
+            }
+            Smo.Server destination_srv = new Smo.Server(d_conn);
+            if (!destination_srv.Databases.Contains(d_db))
+            {
+                Smo.Database newdb = new Smo.Database(destination_srv, d_db);
+                newdb.Create();
+            }
+            // transfer.CreateTargetDatabase = true;
+            transfer.DestinationLoginSecure = false;
+            transfer.DestinationServer = d_server;
+            transfer.DestinationLogin = d_username;
+            transfer.DestinationPassword = d_pwd;
+            transfer.DestinationDatabase = d_db;
+
+            transfer.ScriptTransfer();
+            transfer.TransferData();
+
+            
+            //Smo.Server srv = new Smo.Server();
+            //// really you would get these from config or elsewhere:
+            ////srv.ConnectionContext.Login = "foo";
+            ////srv.ConnectionContext.Password = "bar";
+            //srv.ConnectionContext.ServerInstance = @"(localdb)\v11.0";
+            //string dbName = "TEST";
+
+            //Smo.Database db = new Smo.Database();
+            //db = srv.Databases[dbName];
+
+            //StringBuilder sb = new StringBuilder();
+            //List<SechmaModel> sms = new List<SechmaModel>();
+            //foreach (Smo.Table tbl in db.Tables)
+            //{
+            //    SechmaModel model = new SechmaModel();
+            //    Smo.ScriptingOptions options = new Smo.ScriptingOptions();
+            //    options.ClusteredIndexes = true;
+            //    options.Default = true;
+            //    options.DriAll = true;
+            //    options.Indexes = true;
+            //    options.IncludeHeaders = true;
+                
+            //    StringCollection coll = tbl.Script(options);
+            //    foreach (string str in coll)
+            //    {
+            //        sb.Append(str);
+            //        sb.Append(Environment.NewLine);
+            //    }
+            //}
+            //System.IO.StreamWriter fs = System.IO.File.CreateText("c:\\temp\\output.txt");
+            //fs.Write(sb.ToString());
+            //fs.Close();
 
             //Step2.  Build Table & Save FK Table 
             //Step3.  SQL Statement
