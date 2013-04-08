@@ -696,8 +696,15 @@ namespace DbBackuper
             // transfer.CreateTargetDatabase = true;
             transfer.DestinationLoginSecure = false;
             transfer.DestinationServer = d_server;
-            transfer.DestinationLogin = d_username;
-            transfer.DestinationPassword = d_pwd;
+            if (!string.IsNullOrEmpty(d_username) && !string.IsNullOrEmpty(d_pwd))
+            {
+                transfer.DestinationLogin = d_username;
+                transfer.DestinationPassword = d_pwd;
+            }
+            else
+            {
+                transfer.DestinationLoginSecure = true;
+            }
             transfer.DestinationDatabase = d_db;
 
             transfer.ScriptTransfer();
