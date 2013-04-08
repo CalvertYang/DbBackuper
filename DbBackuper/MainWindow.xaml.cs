@@ -268,8 +268,8 @@ namespace DbBackuper
                 case "first":
                     bool source_local_condition = ((cmbSourceSwitcher.SelectedItem as ComboBoxItem).Content.ToString() == "Local"); 
                     bool source_remote_condition = ((cmbSourceSwitcher.SelectedItem as ComboBoxItem).Content.ToString() == "Remote") 
-                        && (!String.IsNullOrEmpty(txtSourceAccount.Text) && !String.IsNullOrEmpty(txtSourceLocation.Text) 
-                        && !String.IsNullOrEmpty(pwdSource.Password));
+                        && (!String.IsNullOrEmpty(txtSourceAccount.Text) && !String.IsNullOrEmpty(txtSourceLocation.Text.Trim()) 
+                        && !String.IsNullOrEmpty(pwdSource.Password.ToString().Trim()));
                     bool source_pass = source_local_condition || source_remote_condition;
 
                     if (source_pass)
@@ -302,8 +302,8 @@ namespace DbBackuper
                 case "third":
                     bool target_local_condition = ((cmbTargetSwitcher.SelectedItem as ComboBoxItem).Content.ToString() == "Local");
                     bool target_remote_condition = ((cmbTargetSwitcher.SelectedItem as ComboBoxItem).Content.ToString() == "Remote")
-                                && (!String.IsNullOrEmpty(txtTargetAccount.Text) && !String.IsNullOrEmpty(txtTargetLocation.Text) 
-                                && !String.IsNullOrEmpty(pwdTarget.Password));
+                                && (!String.IsNullOrEmpty(txtTargetAccount.Text) && !String.IsNullOrEmpty(txtTargetLocation.Text.Trim())
+                                && !String.IsNullOrEmpty(pwdTarget.Password.ToString().Trim()));
                     bool target_pass = target_local_condition || target_remote_condition;
                     if (target_pass)
                     {
@@ -442,7 +442,14 @@ namespace DbBackuper
 
             using (SqlConnection conn = new System.Data.SqlClient.SqlConnection(connstring))
             {
-                conn.Open();
+                try
+                {
+                    conn.Open();
+                }
+                catch (SqlException exp)
+                {
+                    throw new InvalidOperationException("Data could not be read", exp);
+                }
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = conn;
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -461,7 +468,14 @@ namespace DbBackuper
         {
             using (SqlConnection conn = new System.Data.SqlClient.SqlConnection(connstring))
             {
-                conn.Open();
+                try
+                {
+                    conn.Open();
+                }
+                catch (SqlException exp)
+                {
+                    throw new InvalidOperationException("Data could not be read", exp);
+                }
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = conn;
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -554,7 +568,10 @@ namespace DbBackuper
             //Smo.Database database = new Smo.Database();
             //database = server.Databases["TEST"];
             //Smo.Table table = database.Tables["Categories", @"PPP"];
-
+            if (!String.IsNullOrEmpty(this._source_connstring))
+            { 
+                //
+            }
             Smo.Server srv = new Smo.Server();
             // really you would get these from config or elsewhere:
             //srv.ConnectionContext.Login = "foo";
