@@ -347,11 +347,19 @@ namespace DbBackuper
                     }
                     break;
                 case "fourth":
-                    
+
                     if (String.IsNullOrEmpty(txtBackupDatabaseName.Text))
                     {
                         MessageBox.Show("Please enter database name for backup");
                         e.Cancel = true;
+                    }
+                    else
+                    {
+                        // Fixed issue
+                        SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(_target_connstring);
+                        builder["Database"] = txtBackupDatabaseName.Text.Trim();
+                        this._target_connstring = builder.ConnectionString;
+                        
                     }
                     if ((bool)chkBackupDateRange.IsChecked)
                     {
@@ -750,9 +758,10 @@ namespace DbBackuper
                                 tableList.Add(dr[0].ToString());
                             }
                             dr.Close();
+                            bulk_conn.Close();
+                                
                             // TODO: data always full
                             DataTable dtJobs = new DataTable();
-
                             using (SqlConnection c = new SqlConnection(this._source_connstring))
                             {
                                 c.Open();
@@ -765,6 +774,7 @@ namespace DbBackuper
 
                             using (SqlBulkCopy mySbc = new SqlBulkCopy(bulk_conn))
                             {
+                                bulk_conn.Open();
                                 //設定
                                 mySbc.BatchSize = 10000; //批次寫入的數量
                                 mySbc.BulkCopyTimeout = 60; //逾時時間
@@ -774,7 +784,7 @@ namespace DbBackuper
                                 //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
 
                                 // 更新哪個資料表
-                                mySbc.DestinationTableName = "dbo.Jobs";
+                                mySbc.DestinationTableName = "Jobs";
                                 mySbc.ColumnMappings.Add("klKey", "klKey");
                                 mySbc.ColumnMappings.Add("Operator", "Operator");
                                 mySbc.ColumnMappings.Add("InspectionType", "InspectionType");
