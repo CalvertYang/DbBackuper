@@ -110,13 +110,6 @@ namespace DbBackuper
          * */
         #endregion
 
-        // N1: 初始化，載入資料
-        private void Grid_Loaded_1(object sender, RoutedEventArgs e)
-        {
-            
-            
-        }
-
         #region Page-1
         // P1: Validate "Source" connection 
         private void SourceValidateConn_Click(object sender, RoutedEventArgs e)
@@ -712,6 +705,11 @@ namespace DbBackuper
 
                 transfer.ScriptTransfer();
                 transfer.TransferData();
+            }
+            else
+            { 
+                // When database exists but table not exists.
+                // When database, table esixts 
             }
             
 

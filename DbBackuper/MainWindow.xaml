@@ -8,7 +8,7 @@
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen">
     
-        <Grid Loaded="Grid_Loaded_1" x:Name="_grid">
+        <Grid x:Name="_grid">
 
         <aw:Wizard x:Name="wizard" aw:Designer.PageIndex="1" Cancelled="Wizard_Cancelled" >
             <!-- Page 1-->
