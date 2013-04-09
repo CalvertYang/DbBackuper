@@ -147,9 +147,11 @@ namespace DbBackuper
         {
             if (cmbSourceDatabases.SelectedIndex != 0)
             {
-                string format = this._source_connstring + "Database={0};";
-                string conn = string.Format(format,cmbSourceDatabases.SelectedItem.ToString());
-                LoadTables(conn);
+                // Fixed issue
+                SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(_source_connstring);
+                builder["Database"] = cmbSourceDatabases.SelectedItem.ToString();
+                this._source_connstring = builder.ConnectionString;
+                LoadTables(this._source_connstring);
             }
 
         }
@@ -580,7 +582,7 @@ namespace DbBackuper
                     }
                     else if (server.ToLower() == @"(localdb)\v11.0")
                     {
-                        this._source_connstring = LOCALDBV11_CONNSTRING_NO_DATABASE;
+                        this._source_connstring = LOCALDBV11_CONNSTRING_NO_DATABASE ;
                         result = true;
                     }
                     else
@@ -749,12 +751,17 @@ namespace DbBackuper
                             }
                             dr.Close();
                             // TODO: data always full
-                            string query_filter_datarange = string.Format("SELECT * FROM Jobs Where Date Between '{0}' and '{1}'", dpFrom.SelectedDate.Value.ToShortDateString(), dpTo.SelectedDate.Value.ToShortDateString());
-
-                            SqlDataAdapter da = new SqlDataAdapter(query_filter_datarange, bulk_conn);
-                            
                             DataTable dtJobs = new DataTable();
-                            da.Fill(dtJobs);
+
+                            using (SqlConnection c = new SqlConnection(this._source_connstring))
+                            {
+                                c.Open();
+                                string query_filter_datarange = string.Format("SELECT * FROM Jobs Where Date Between '{0}' and '{1}'", dpFrom.SelectedDate.Value.ToShortDateString(), dpTo.SelectedDate.Value.ToShortDateString());
+                                using (SqlDataAdapter da = new SqlDataAdapter(query_filter_datarange, c))
+                                {
+                                    da.Fill(dtJobs);
+                                }
+                            }
 
                             using (SqlBulkCopy mySbc = new SqlBulkCopy(bulk_conn))
                             {
