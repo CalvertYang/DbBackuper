@@ -16,3 +16,21 @@ C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\EntityFramework.xml
 C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.dll
 C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.pdb
 C:\Projects\Practices\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.xml
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\DbBackuper.exe.config
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper.exe
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper.pdb
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\DbBackuper.exe
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\DbBackuper.pdb
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.dll
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\EntityFramework.dll
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.pdb
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\AvalonWizard.xml
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\bin\Debug\EntityFramework.xml
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper.csprojResolveAssemblyReference.cache
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\MainWindow.baml
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\MainWindow.g.cs
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\App.g.cs
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper_MarkupCompile.cache
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper.g.resources
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper.Properties.Resources.resources
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\DbBackuper.csproj.GenerateResource.Cache

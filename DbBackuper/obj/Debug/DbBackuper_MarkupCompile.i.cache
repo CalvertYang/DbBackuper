@@ -4,16 +4,21 @@
 winexe
 C#
 .cs
-C:\Projects\Practices\DbBackuper\DbBackuper\obj\Debug\
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\obj\Debug\
 DbBackuper
 none
 false
 DEBUG;TRACE
-C:\Projects\Practices\DbBackuper\DbBackuper\App.xaml
+C:\Workspace\Visual Studio 2012\Projects\DbBackuper\DbBackuper\App.xaml
 11151548125
 
+<<<<<<< HEAD
+11677378507
+22-1706290816
+=======
 12764944413
 22302058416
+>>>>>>> f5486bb627f48e4ca1dd3d55ee192447d3d69e59
 MainWindow.xaml;
 
 False
