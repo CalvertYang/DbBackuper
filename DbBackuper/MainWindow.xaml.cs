@@ -481,8 +481,9 @@ namespace DbBackuper
                 }
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = conn;
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandText = "sp_databases";
+                //cmd.CommandType = CommandType.StoredProcedure;
+                //cmd.CommandText = "sp_databases";
+                cmd.CommandText = "SELECT name FROM sys.databases WHERE database_id > 4";
 
                 SqlDataReader dr = cmd.ExecuteReader();
                 while (dr.Read())
@@ -507,17 +508,18 @@ namespace DbBackuper
                 }
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = conn;
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandText = "sp_tables";
+                //cmd.CommandType = CommandType.StoredProcedure;
+                //cmd.CommandText = "sp_tables";
+                cmd.CommandText = "SELECT name FROM sys.tables WHERE is_ms_shipped = 0";
 
                 SqlDataReader dr = cmd.ExecuteReader();
                 _tables.Clear();
                 while (dr.Read())
                 {
-                    if (dr[3].ToString().ToLower() == "table")
-                    {
-                        _tables.Add(new CheckedListItem { Name = dr[2].ToString(), IsChecked = false });
-                    }
+                    //if (dr[3].ToString().ToLower() == "table")
+                    //{
+                        _tables.Add(new CheckedListItem { Name = dr[0].ToString(), IsChecked = false });
+                    //}
                 }
             }
         }
