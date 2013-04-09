@@ -308,7 +308,7 @@ namespace DbBackuper
                         e.Cancel = true;
                     }
                     // check jobs must be selected.
-                    if (_tables.Where(t => t.Name == "Jobs").ToList().Count() == 0)
+                    if (_tables.Where(t => t.Name == "Jobs" && t.IsChecked == true).ToList().Count() == 0)
                     {
                         MessageBox.Show("Jobs must be select");
                         e.Cancel = true;
@@ -732,7 +732,7 @@ namespace DbBackuper
                     transfer.TransferData();
                     // TODO: deal no database & table use data range.
                     // has data range
-                    using (TransactionScope scope = new TransactionScope())
+                    using (TransactionScope scope = new TransactionScope(TransactionScopeOption.Suppress))
                     {
                         // 大量寫入
                         using (SqlConnection bulk_conn = new SqlConnection(this._target_connstring))
