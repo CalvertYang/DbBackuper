@@ -701,9 +701,6 @@ namespace DbBackuper
             // When database not exists backup all
             if (!destination_srv.Databases.Contains(d_db))
             {
-                Smo.Database newdb = new Smo.Database(destination_srv, d_db);
-                newdb.Create();
-
                 // transfer.CreateTargetDatabase = true;
                 transfer.DestinationLoginSecure = false;
                 transfer.DestinationServer = d_server;
@@ -717,99 +714,112 @@ namespace DbBackuper
                     transfer.DestinationLoginSecure = true;
                 }
                 transfer.DestinationDatabase = d_db;
-                
 
-                if (!(bool)chkBackupDateRange.IsChecked)
+                try
                 {
-                    transfer.ScriptTransfer();
-                    transfer.TransferData();
-                }
-                else
-                {
-                    transfer.CopySchema = true;
-                    transfer.CopyData = false;
-                    transfer.ScriptTransfer();
-                    transfer.TransferData();
-                    // TODO: deal no database & table use data range.
-                    // has data range
-                    using (TransactionScope scope = new TransactionScope(TransactionScopeOption.Suppress))
+                    Smo.Database newdb = new Smo.Database(destination_srv, d_db);
+                    newdb.Create();
+
+                    if (!(bool)chkBackupDateRange.IsChecked)
                     {
-                        // 大量寫入
-                        using (SqlConnection bulk_conn = new SqlConnection(this._target_connstring))
+                        transfer.ScriptTransfer();
+                        transfer.TransferData();
+                    }
+                    else
+                    {
+                        transfer.CopySchema = true;
+                        transfer.CopyData = false;
+                        transfer.ScriptTransfer();
+                        transfer.TransferData();
+
+                        // has data range
+                        using (TransactionScope scope = new TransactionScope(TransactionScopeOption.Suppress))
                         {
-                            // step 1 check target tables
-                            List<string> tableList = new List<string>();
-                            try
+                            // 大量寫入
+                            // Solve Somethiing
+                            // http://msdn.microsoft.com/zh-tw/library/aa561924%28v=bts.10%29.aspx
+                            // http://www.died.tw/2009/04/msdtc.html
+                            // 
+                            using (SqlConnection bulk_conn = new SqlConnection(this._target_connstring))
                             {
-                                bulk_conn.Open();
-                            }
-                            catch (SqlException exp)
-                            {
-                                throw new InvalidOperationException("Data could not be read", exp);
-                            }
-                            SqlCommand cmd = new SqlCommand();
-                            cmd.Connection = bulk_conn;
-                            cmd.CommandText = "SELECT name FROM sys.tables WHERE is_ms_shipped = 0";
-
-                            SqlDataReader dr = cmd.ExecuteReader();
-                            tableList.Clear();
-                            while (dr.Read())
-                            {
-                                tableList.Add(dr[0].ToString());
-                            }
-                            dr.Close();
-                            bulk_conn.Close();
-                                
-                            // TODO: data always full
-                            DataTable dtJobs = new DataTable();
-                            using (SqlConnection c = new SqlConnection(this._source_connstring))
-                            {
-                                c.Open();
-                                string query_filter_datarange = string.Format("SELECT * FROM Jobs Where Date Between '{0}' and '{1}'", dpFrom.SelectedDate.Value.ToShortDateString(), dpTo.SelectedDate.Value.ToShortDateString());
-                                using (SqlDataAdapter da = new SqlDataAdapter(query_filter_datarange, c))
+                                // step 1 check target tables
+                                List<string> tableList = new List<string>();
+                                try
                                 {
-                                    da.Fill(dtJobs);
+                                    bulk_conn.Open();
                                 }
-                            }
+                                catch (SqlException exp)
+                                {
+                                    throw new InvalidOperationException("Data could not be read", exp);
+                                }
+                                SqlCommand cmd = new SqlCommand();
+                                cmd.Connection = bulk_conn;
+                                cmd.CommandText = "SELECT name FROM sys.tables WHERE is_ms_shipped = 0";
 
-                            using (SqlBulkCopy mySbc = new SqlBulkCopy(bulk_conn))
-                            {
-                                bulk_conn.Open();
-                                //設定
-                                mySbc.BatchSize = 10000; //批次寫入的數量
-                                mySbc.BulkCopyTimeout = 60; //逾時時間
+                                SqlDataReader dr = cmd.ExecuteReader();
+                                tableList.Clear();
+                                while (dr.Read())
+                                {
+                                    tableList.Add(dr[0].ToString());
+                                }
+                                dr.Close();
+                                bulk_conn.Close();
 
-                                //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
-                                //mySbc.NotifyAfter = DTableList.Rows.Count;
-                                //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
+                                // TODO: data always full
+                                DataTable dtJobs = new DataTable();
+                                using (SqlConnection c = new SqlConnection(this._source_connstring))
+                                {
+                                    c.Open();
+                                    string query_filter_datarange = string.Format("SELECT * FROM Jobs Where Date Between '{0}' and '{1}'", dpFrom.SelectedDate.Value.ToShortDateString(), dpTo.SelectedDate.Value.ToShortDateString());
+                                    using (SqlDataAdapter da = new SqlDataAdapter(query_filter_datarange, c))
+                                    {
+                                        da.Fill(dtJobs);
+                                    }
+                                }
 
-                                // 更新哪個資料表
-                                mySbc.DestinationTableName = "Jobs";
-                                mySbc.ColumnMappings.Add("klKey", "klKey");
-                                mySbc.ColumnMappings.Add("Operator", "Operator");
-                                mySbc.ColumnMappings.Add("InspectionType", "InspectionType");
-                                mySbc.ColumnMappings.Add("MaterialType", "MaterialType");
-                                mySbc.ColumnMappings.Add("OrderNumber", "OrderNumber");
-                                mySbc.ColumnMappings.Add("JobID", "JobID");
-                                mySbc.ColumnMappings.Add("Date", "Date");
-                                mySbc.ColumnMappings.Add("fkMCS", "fkMCS");
-                                mySbc.ColumnMappings.Add("Comment", "Comment");
-                                mySbc.ColumnMappings.Add("LastPosition", "LastPosition");
-                                mySbc.ColumnMappings.Add("LastSpeed", "LastSpeed");
-                                mySbc.ColumnMappings.Add("LastLeftEdge", "LastLeftEdge");
-                                mySbc.ColumnMappings.Add("LastRightEdge", "LastRightEdge");
-                                mySbc.ColumnMappings.Add("Status", "Status");
-                                mySbc.ColumnMappings.Add("PxPInfo", "PxPInfo");
-                               
+                                using (SqlBulkCopy mySbc = new SqlBulkCopy(bulk_conn))
+                                {
+                                    bulk_conn.Open();
+                                    //設定
+                                    mySbc.BatchSize = 10000; //批次寫入的數量
+                                    mySbc.BulkCopyTimeout = 60; //逾時時間
 
-                                //開始寫入
-                                mySbc.WriteToServer(dtJobs);
+                                    //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
+                                    //mySbc.NotifyAfter = DTableList.Rows.Count;
+                                    //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
 
-                                //完成交易
-                                scope.Complete();
+                                    // 更新哪個資料表
+                                    mySbc.DestinationTableName = "Jobs";
+                                    mySbc.ColumnMappings.Add("klKey", "klKey");
+                                    mySbc.ColumnMappings.Add("Operator", "Operator");
+                                    mySbc.ColumnMappings.Add("InspectionType", "InspectionType");
+                                    mySbc.ColumnMappings.Add("MaterialType", "MaterialType");
+                                    mySbc.ColumnMappings.Add("OrderNumber", "OrderNumber");
+                                    mySbc.ColumnMappings.Add("JobID", "JobID");
+                                    mySbc.ColumnMappings.Add("Date", "Date");
+                                    mySbc.ColumnMappings.Add("fkMCS", "fkMCS");
+                                    mySbc.ColumnMappings.Add("Comment", "Comment");
+                                    mySbc.ColumnMappings.Add("LastPosition", "LastPosition");
+                                    mySbc.ColumnMappings.Add("LastSpeed", "LastSpeed");
+                                    mySbc.ColumnMappings.Add("LastLeftEdge", "LastLeftEdge");
+                                    mySbc.ColumnMappings.Add("LastRightEdge", "LastRightEdge");
+                                    mySbc.ColumnMappings.Add("Status", "Status");
+                                    mySbc.ColumnMappings.Add("PxPInfo", "PxPInfo");
+
+
+                                    //開始寫入
+                                    mySbc.WriteToServer(dtJobs);
+
+                                    //完成交易
+                                    scope.Complete();
+                                }
                             }
                         }
                     }
+                }
+                catch (Exception ex)
+                { 
+                    
                 }
                 MessageBox.Show("Done");
             }
