@@ -25,7 +25,7 @@ using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Sdk.Sfc;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
-
+using System.Transactions;
 namespace DbBackuper
 {
 
@@ -305,7 +305,12 @@ namespace DbBackuper
                         MessageBox.Show("Please choose more than one.");
                         e.Cancel = true;
                     }
-                    
+                    // check jobs must be selected.
+                    if (_tables.Where(t => t.Name == "Jobs").ToList().Count() == 0)
+                    {
+                        MessageBox.Show("Jobs must be select");
+                        e.Cancel = true;
+                    }
 
                     break;
                 case "third":
@@ -702,9 +707,94 @@ namespace DbBackuper
                     transfer.DestinationLoginSecure = true;
                 }
                 transfer.DestinationDatabase = d_db;
+                
 
-                transfer.ScriptTransfer();
-                transfer.TransferData();
+                if (!(bool)chkBackupDateRange.IsChecked)
+                {
+                    transfer.ScriptTransfer();
+                    transfer.TransferData();
+                }
+                else
+                {
+                    transfer.CopySchema = true;
+                    transfer.CopyData = false;
+                    transfer.ScriptTransfer();
+                    transfer.TransferData();
+                    // TODO: deal no database & table use data range.
+                    // has data range
+                    using (TransactionScope scope = new TransactionScope())
+                    {
+                        // 大量寫入
+                        using (SqlConnection bulk_conn = new SqlConnection(this._target_connstring))
+                        {
+                            // step 1 check target tables
+                            List<string> tableList = new List<string>();
+                            try
+                            {
+                                bulk_conn.Open();
+                            }
+                            catch (SqlException exp)
+                            {
+                                throw new InvalidOperationException("Data could not be read", exp);
+                            }
+                            SqlCommand cmd = new SqlCommand();
+                            cmd.Connection = bulk_conn;
+                            cmd.CommandText = "SELECT name FROM sys.tables WHERE is_ms_shipped = 0";
+
+                            SqlDataReader dr = cmd.ExecuteReader();
+                            tableList.Clear();
+                            while (dr.Read())
+                            {
+                                tableList.Add(dr[0].ToString());
+                            }
+                            dr.Close();
+                            // TODO: data always full
+                            string query_filter_datarange = string.Format("SELECT * FROM Jobs Where Date Between '{0}' and '{1}'", dpFrom.SelectedDate.Value.ToShortDateString(), dpTo.SelectedDate.Value.ToShortDateString());
+
+                            SqlDataAdapter da = new SqlDataAdapter(query_filter_datarange, bulk_conn);
+                            
+                            DataTable dtJobs = new DataTable();
+                            da.Fill(dtJobs);
+
+                            using (SqlBulkCopy mySbc = new SqlBulkCopy(bulk_conn))
+                            {
+                                //設定
+                                mySbc.BatchSize = 10000; //批次寫入的數量
+                                mySbc.BulkCopyTimeout = 60; //逾時時間
+
+                                //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
+                                //mySbc.NotifyAfter = DTableList.Rows.Count;
+                                //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
+
+                                // 更新哪個資料表
+                                mySbc.DestinationTableName = "dbo.Jobs";
+                                mySbc.ColumnMappings.Add("klKey", "klKey");
+                                mySbc.ColumnMappings.Add("Operator", "Operator");
+                                mySbc.ColumnMappings.Add("InspectionType", "InspectionType");
+                                mySbc.ColumnMappings.Add("MaterialType", "MaterialType");
+                                mySbc.ColumnMappings.Add("OrderNumber", "OrderNumber");
+                                mySbc.ColumnMappings.Add("JobID", "JobID");
+                                mySbc.ColumnMappings.Add("Date", "Date");
+                                mySbc.ColumnMappings.Add("fkMCS", "fkMCS");
+                                mySbc.ColumnMappings.Add("Comment", "Comment");
+                                mySbc.ColumnMappings.Add("LastPosition", "LastPosition");
+                                mySbc.ColumnMappings.Add("LastSpeed", "LastSpeed");
+                                mySbc.ColumnMappings.Add("LastLeftEdge", "LastLeftEdge");
+                                mySbc.ColumnMappings.Add("LastRightEdge", "LastRightEdge");
+                                mySbc.ColumnMappings.Add("Status", "Status");
+                                mySbc.ColumnMappings.Add("PxPInfo", "PxPInfo");
+                               
+
+                                //開始寫入
+                                mySbc.WriteToServer(dtJobs);
+
+                                //完成交易
+                                scope.Complete();
+                            }
+                        }
+                    }
+                }
+                MessageBox.Show("Done");
             }
             else
             { 
