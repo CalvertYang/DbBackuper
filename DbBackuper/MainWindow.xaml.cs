@@ -972,8 +972,13 @@ namespace DbBackuper
             }
             else
             { 
-                // When database exists but table not exists.
-                // When database, table esixts 
+                // TODO: here now.
+                // database exists but:
+                // * situation 1 : no [table] no [data range]  
+                // * situation 2 : no [table] exists [data range]
+                // * situation 3 : exists [table] no [data range] 
+                // * situation 4 : exists [table] exists [data range] 
+                
             }
             
 
