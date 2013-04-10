@@ -685,6 +685,7 @@ namespace DbBackuper
             foreach (var tbl in _tables.Where(x => x.IsChecked == true))
             {
                 transfer.ObjectList.Add(source_db.Tables[tbl.Name]);
+
             }
 
             //use following code if want to create destination databaes runtime
@@ -715,8 +716,7 @@ namespace DbBackuper
                 }
                 transfer.DestinationDatabase = d_db;
 
-                try
-                {
+                
                     Smo.Database newdb = new Smo.Database(destination_srv, d_db);
                     newdb.Create();
 
@@ -762,71 +762,223 @@ namespace DbBackuper
                                 {
                                     tableList.Add(dr[0].ToString());
                                 }
+                                // Jobs 和 MCS 一定要有所以排除 下面會直接跑。
+                                tableList.Remove("Jobs");
+                                tableList.Remove("MCS");
                                 dr.Close();
                                 bulk_conn.Close();
 
                                 // TODO: data always full
-                                DataTable dtJobs = new DataTable();
+                                Dictionary<string, DataTable> dts = new Dictionary<string, DataTable>();
+
                                 using (SqlConnection c = new SqlConnection(this._source_connstring))
                                 {
                                     c.Open();
+                                    // 1. 先取得 Jobs 完成 Jobs 轉移 要先撈Job才知道時間 所以流程為
+                                    // get Jobs -> get MCS -> write MCS -> write Jobs
                                     string query_filter_datarange = string.Format("SELECT * FROM Jobs Where Date Between '{0}' and '{1}'", dpFrom.SelectedDate.Value.ToShortDateString(), dpTo.SelectedDate.Value.ToShortDateString());
                                     using (SqlDataAdapter da = new SqlDataAdapter(query_filter_datarange, c))
                                     {
-                                        da.Fill(dtJobs);
+                                        dts["Jobs"] = new DataTable();
+                                        da.Fill(dts["Jobs"]);
+                                    }
+                                    var jobKeys = from job in dts["Jobs"].AsEnumerable()
+                                                  select job.Field<int>("klKey");
+                                    string condiction = string.Join(",", jobKeys.Select(j => j.ToString()).ToArray());
+                                    // 後面都是跟著這個條件
+                                    condiction = condiction.Trim();
+
+                                    // 2-0. 因為 Jobs KEY 綁 MCS 所以要先撈MCS
+                                    string query_mcs = string.Format("Select * From MCS Where pkMCS IN ({0})",condiction);
+                                    using (SqlDataAdapter da = new SqlDataAdapter(query_mcs, c))
+                                    {
+                                        dts["MCS"] = new DataTable();
+                                        da.Fill(dts["MCS"]);
+                                    }
+                                    // write MCS
+                                    using (SqlBulkCopy mySbc = new SqlBulkCopy(this._target_connstring, SqlBulkCopyOptions.KeepIdentity))
+                                    {
+                                        
+                                        // bulk_conn.Open();
+                                        //設定
+                                        mySbc.BatchSize = 10000; //批次寫入的數量
+                                        mySbc.BulkCopyTimeout = 60; //逾時時間
+
+                                        //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
+                                        //mySbc.NotifyAfter = DTableList.Rows.Count;
+                                        //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
+
+                                        // 更新哪個資料表
+                                        mySbc.DestinationTableName = "MCS";
+                                        foreach (var item in dts["MCS"].Columns.Cast<DataColumn>())
+                                        {
+                                            mySbc.ColumnMappings.Add(item.ColumnName, item.ColumnName);
+                                        }
+
+                                        //開始寫入
+                                        mySbc.WriteToServer(dts["MCS"]);
+
+                                        //完成交易
+                                        //scope.Complete();
+                                    }
+                                    // write Jobs
+                                    using (SqlBulkCopy mySbc = new SqlBulkCopy(this._target_connstring, SqlBulkCopyOptions.KeepIdentity))
+                                    {
+                                        // bulk_conn.Open();
+                                        //設定
+                                        mySbc.BatchSize = 10000; //批次寫入的數量
+                                        mySbc.BulkCopyTimeout = 60; //逾時時間
+
+                                        //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
+                                        //mySbc.NotifyAfter = DTableList.Rows.Count;
+                                        //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
+
+                                        // 更新哪個資料表
+                                        mySbc.DestinationTableName = "Jobs";
+                                        foreach (var item in dts["Jobs"].Columns.Cast<DataColumn>())
+                                        {
+                                            mySbc.ColumnMappings.Add(item.ColumnName, item.ColumnName);
+                                        }
+
+
+                                        //開始寫入
+                                        mySbc.WriteToServer(dts["Jobs"]);
+
+                                        //完成交易
+                                        //scope.Complete();
+                                    }
+                                    // 2. 撈出所有選取的 Table 欄位 為了判斷誰有 klJobKey fkJobKey
+                                   
+                                    
+                                    foreach (var tableName in tableList)
+                                    {
+
+                                        dts[tableName] = new DataTable();
+                                        string query = "";
+                                        using (SqlConnection c1 = new SqlConnection(this._source_connstring))
+                                        {
+                                            // 2-1. 先撈出所有欄位
+                                            SqlCommand command = new SqlCommand();
+                                            command.Connection = c1;
+                                            string query_column = string.Format("Select * From syscolumns Where id=OBJECT_ID(N'{0}')", tableName);
+                                            command.CommandText = query_column;
+                                            c1.Open();
+                                            string fkName = "";
+                                            using (var reader = command.ExecuteReader())
+                                            {
+                                                while (reader.Read())
+                                                {
+                                                    string cName = reader["name"].ToString();
+                                                    if (cName == "fkJobKey")
+                                                    {
+                                                        fkName = "fkJobKey";
+                                                        break;
+                                                    }
+                                                    if (cName == "klJobKey")
+                                                    {
+                                                        fkName = "klJobKey";
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                // 2-2. 判斷欄位有FK的SQL query statement 加入條件。
+                                                if (fkName == "fkJobKey")
+                                                {
+                                                    query = string.Format("Select * From [{0}] Where fkJobKey IN ({1}) ", tableName, condiction);
+                                                }
+                                                else if (fkName == "klJobKey")
+                                                {
+                                                    query = string.Format("Select * From [{0}] Where klJobKey IN ({1}) ", tableName, condiction);
+                                                }
+                                                else
+                                                {
+                                                    query = string.Format("Select * From [{0}]", tableName);
+                                                    
+                                                }
+                                            }
+                                            using (SqlDataAdapter da = new SqlDataAdapter(query, c1))
+                                            {
+                                                da.Fill(dts[tableName]);
+                                            }
+                                           
+                                        }
+
+                                        // 3. 如果 FK 有 Job Key 過濾移除
+                                        /// || dts[tableName].Columns.Contains("klJobKey")
+                                        //if (dts[tableName].Columns.Contains("fkJobKey"))
+                                        //{
+                                        //    // var rows = dts[tableName].Select("fkJobKey in ")
+                                        //    var dealtable = from tbl in dts[tableName].AsEnumerable()
+                                        //                    select tbl.Field<int>("fkJobKey");
+
+                                        //    var filtration = dealtable.Except(jobKeys);
+
+                                        //    var rows = from tbl in dts[tableName].AsEnumerable()
+                                        //               where filtration.Any(f => f == tbl.Field<int>("fkJobKey"))
+                                        //               select tbl;
+                                        //    foreach (DataRow r in rows.ToArray())
+                                        //    {
+                                        //        dts[tableName].Rows.Remove(r);
+                                        //    }
+                                        //}
+                                        //if (dts[tableName].Columns.Contains("klJobKey"))
+                                        //{
+                                        //    // var rows = dts[tableName].Select("fkJobKey in ")
+                                        //    var dealtable = from tbl in dts[tableName].AsEnumerable()
+                                        //                    select tbl.Field<int>("klJobKey");
+
+                                        //    var filtration = dealtable.Except(jobKeys);
+
+                                        //    var rows = from tbl in dts[tableName].AsEnumerable()
+                                        //               where filtration.Any(f => f == tbl.Field<int>("klJobKey"))
+                                        //               select tbl;
+                                        //    foreach (DataRow r in rows.ToArray())
+                                        //    {
+                                        //        dts[tableName].Rows.Remove(r);
+                                        //    }
+                                        //}
+                                        // 4. 跑轉移
+                                        using (SqlBulkCopy mySbc = new SqlBulkCopy(this._target_connstring, SqlBulkCopyOptions.KeepIdentity))
+                                        {
+                                            // bulk_conn.Open();
+                                            //設定
+                                            mySbc.BatchSize = 10000; //批次寫入的數量
+                                            mySbc.BulkCopyTimeout = 60; //逾時時間
+
+                                            //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
+                                            //mySbc.NotifyAfter = DTableList.Rows.Count;
+                                            //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
+
+                                            // 更新哪個資料表
+
+                                            mySbc.DestinationTableName = tableName;
+                                            foreach (var item in dts[tableName].Columns.Cast<DataColumn>())
+                                            {
+                                                mySbc.ColumnMappings.Add(item.ColumnName, item.ColumnName);
+                                            }
+                                            //開始寫入
+                                            mySbc.WriteToServer(dts[tableName]);
+                                        }
                                     }
                                 }
-
-                                using (SqlBulkCopy mySbc = new SqlBulkCopy(bulk_conn))
-                                {
-                                    bulk_conn.Open();
-                                    //設定
-                                    mySbc.BatchSize = 10000; //批次寫入的數量
-                                    mySbc.BulkCopyTimeout = 60; //逾時時間
-
-                                    //處理完後丟出一個事件,或是說處理幾筆後就丟出事件 
-                                    //mySbc.NotifyAfter = DTableList.Rows.Count;
-                                    //mySbc.SqlRowsCopied += new SqlRowsCopiedEventHandler(mySbc_SqlRowsCopied);
-
-                                    // 更新哪個資料表
-                                    mySbc.DestinationTableName = "Jobs";
-                                    mySbc.ColumnMappings.Add("klKey", "klKey");
-                                    mySbc.ColumnMappings.Add("Operator", "Operator");
-                                    mySbc.ColumnMappings.Add("InspectionType", "InspectionType");
-                                    mySbc.ColumnMappings.Add("MaterialType", "MaterialType");
-                                    mySbc.ColumnMappings.Add("OrderNumber", "OrderNumber");
-                                    mySbc.ColumnMappings.Add("JobID", "JobID");
-                                    mySbc.ColumnMappings.Add("Date", "Date");
-                                    mySbc.ColumnMappings.Add("fkMCS", "fkMCS");
-                                    mySbc.ColumnMappings.Add("Comment", "Comment");
-                                    mySbc.ColumnMappings.Add("LastPosition", "LastPosition");
-                                    mySbc.ColumnMappings.Add("LastSpeed", "LastSpeed");
-                                    mySbc.ColumnMappings.Add("LastLeftEdge", "LastLeftEdge");
-                                    mySbc.ColumnMappings.Add("LastRightEdge", "LastRightEdge");
-                                    mySbc.ColumnMappings.Add("Status", "Status");
-                                    mySbc.ColumnMappings.Add("PxPInfo", "PxPInfo");
-
-
-                                    //開始寫入
-                                    mySbc.WriteToServer(dtJobs);
-
-                                    //完成交易
-                                    scope.Complete();
-                                }
                             }
+                            //完成交易
+                            scope.Complete();
                         }
                     }
-                }
-                catch (Exception ex)
-                { 
-                    
-                }
+                   
+                  
                 MessageBox.Show("Done");
             }
             else
             { 
-                // When database exists but table not exists.
-                // When database, table esixts 
+                // TODO: here now.
+                // database exists but:
+                // * situation 1 : no [table] no [data range]  
+                // * situation 2 : no [table] exists [data range]
+                // * situation 3 : exists [table] no [data range] 
+                // * situation 4 : exists [table] exists [data range] 
+                
             }
             
 
