@@ -1053,16 +1053,17 @@ namespace DbBackuper
                                 //tableList.Remove("MCS");
                                 dr.Close();
                                 bulk_conn.Close();
-                                // TODO: 2013/4/12
+                                // TODO: 2013/4/13 把所有 Dictionary 換成 Dataset
                                 // step 2 取得所有target上的資料。
-                                DataSet dsTarget = new DataSet(); // 取得 Target上面所有的 Table資料
+                                Dictionary<string, DataTable> dtsTarget = new Dictionary<string, DataTable>(); // 取得 Target上面所有的 Table資料
                                 Dictionary<string, int> keyTarget = new Dictionary<string, int>();// 取得Target 上面 有資料的 Table 最後一個KEY 作為換KEY的起始值
                                 foreach (string tableName in tableList)
                                 {
                                     string queryGetTargetNowData = string.Format("Select * From {0}", tableName);
                                     using (SqlDataAdapter da = new SqlDataAdapter(queryGetTargetNowData, bulk_conn))
                                     {
-                                        da.Fill(dsTarget, tableName);
+                                        dtsTarget[tableName] = new DataTable();
+                                        da.Fill(dtsTarget[tableName]);
                                     }
                                     string keyColumnName = dtsTarget[tableName].Columns[0].ColumnName;
                                     int targetJobsLastKey = dtsTarget[tableName].AsEnumerable().LastOrDefault().Field<int>(keyColumnName);
