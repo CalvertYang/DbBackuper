@@ -1019,7 +1019,7 @@ namespace DbBackuper
                     transfer.CopySchema = true;
                     transfer.CopyData = false;
                     transfer.ScriptTransfer();
-                    transfer.TransferData();
+                    // transfer.TransferData();
 
                     //step 3. 開始搬資料 分成有DateRange和沒有的
                     if (!((bool)chkBackupDateRange.IsChecked)) //沒有時間條件的話
@@ -1055,18 +1055,25 @@ namespace DbBackuper
                                 bulk_conn.Close();
                                 // TODO: 2013/4/13 把所有 Dictionary 換成 Dataset
                                 // step 2 取得所有target上的資料。
-                                Dictionary<string, DataTable> dtsTarget = new Dictionary<string, DataTable>(); // 取得 Target上面所有的 Table資料
+                                DataSet dsTarget = new DataSet(); // 取得 Target上面所有的 Table資料
                                 Dictionary<string, int> keyTarget = new Dictionary<string, int>();// 取得Target 上面 有資料的 Table 最後一個KEY 作為換KEY的起始值
                                 foreach (string tableName in tableList)
                                 {
                                     string queryGetTargetNowData = string.Format("Select * From {0}", tableName);
                                     using (SqlDataAdapter da = new SqlDataAdapter(queryGetTargetNowData, bulk_conn))
                                     {
-                                        dtsTarget[tableName] = new DataTable();
-                                        da.Fill(dtsTarget[tableName]);
+                                        da.FillSchema(dsTarget, SchemaType.Source, tableName);
+                                        da.Fill(dsTarget, tableName);
                                     }
-                                    string keyColumnName = dtsTarget[tableName].Columns[0].ColumnName;
-                                    int targetJobsLastKey = dtsTarget[tableName].AsEnumerable().LastOrDefault().Field<int>(keyColumnName);
+                                    string keyColumnName = dsTarget.Tables[tableName].Columns[0].ColumnName;
+
+                                    // TODO: 取得FK的加入ForeignKeyConstraint限制
+                                    foreach (var i in source_db.Tables[tableName].ForeignKeys)
+                                    {
+                                        string x = i.ToString();
+                                    }
+                                    // dsTarget.Tables[tableName].Constraints
+                                    int targetJobsLastKey = dsTarget.Tables[tableName].AsEnumerable().LastOrDefault().Field<int>(keyColumnName);
                                     if (targetJobsLastKey != 0)
                                     {
                                         keyTarget.Add(tableName, targetJobsLastKey);
@@ -1074,15 +1081,15 @@ namespace DbBackuper
 
                                 }
                                 // step 3. Target上面有資料的就換KEY 先把大家的KEY都換一輪 再來改參考的FK
-                                foreach (KeyValuePair<string, int> key in keyTarget)
-                                {
-                                    int startKey = key.Value;
-                                    foreach (DataRow item in dtsTarget[key.Key].Rows)
-                                    {
-                                        startKey++;
-                                        item[0] = startKey;
-                                    }
-                                }
+                                //foreach (KeyValuePair<string, int> key in keyTarget)
+                                //{
+                                //    int startKey = key.Value;
+                                //    foreach (DataRow item in dtsTarget[key.Key].Rows)
+                                //    {
+                                //        startKey++;
+                                //        item[0] = startKey;
+                                //    }
+                                //}
 
                                 // step 4 . 大家都換完KEY 開始換 FK
 
